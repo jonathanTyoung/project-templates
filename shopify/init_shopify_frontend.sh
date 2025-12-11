@@ -1,11 +1,7 @@
 #!/bin/bash
 
-# -----------------------------------------------------
-# GENERAL SHOPIFY FRONTEND GENERATOR (Next.js + AppBridge)
-# -----------------------------------------------------
-# Usage:
-#   ./init_shopify_frontend.sh <app-name>
-# -----------------------------------------------------
+# SHOPIFY FRONTEND GENERATOR (Next.js + Tailwind + AppBridge)
+# Usage: ./init_shopify_frontend.sh <app-name>
 
 if [ -z "$1" ]; then
   echo "ERROR: You must provide an app name."
@@ -20,56 +16,45 @@ echo "Creating Shopify Embedded Frontend: $FRONTEND_DIR"
 mkdir "$FRONTEND_DIR"
 cd "$FRONTEND_DIR" || exit 1
 
-# -----------------------------------------------------
-# CREATE NEXT.JS APP
-# -----------------------------------------------------
 echo "Setting up Next.js + Tailwind..."
-
 npx create-next-app@latest . --typescript --tailwind --eslint --app --no-git
 
-# Shopify libraries
 npm install @shopify/app-bridge @shopify/app-bridge-react @shopify/app-bridge-utils
-
-# -----------------------------------------------------
-# CREATE DIRECTORY STRUCTURE
-# -----------------------------------------------------
-echo "Creating folder structure..."
 
 mkdir -p components/providers
 mkdir -p lib
 mkdir -p extensions
 
-# -----------------------------------------------------
-# EXTENSIONS README
-# -----------------------------------------------------
-cat <<'EOL' > extensions/README.md
-Shopify App Extensions
-======================
+# .gitignore
+cat << 'EOF' > .gitignore
+node_modules
+.next
+.env*
+.DS_Store
+EOF
 
-This folder is where all Shopify extensions for your embedded app will live.
+# Extensions README
+cat << 'EOF' > extensions/README.md
+# Shopify App Extensions
 
-To generate a new extension, run:
+This folder contains Shopify extensions for your embedded app.
 
-  shopify app generate extension
+## Create an extension:
+shopify app generate extension
 
-Shopify CLI will automatically place the extension in this folder.
-
-Common extension types include:
+## Common types:
 - Admin Page
 - Admin Block
 - Checkout UI Extension
 - Theme App Extension
-- Function Extensions
+- Shopify Function
 
-Extensions are deployed along with your frontend using:
+## Deploy:
+shopify app deploy
+EOF
 
-  shopify app deploy
-EOL
-
-# -----------------------------------------------------
 # APP BRIDGE PROVIDER
-# -----------------------------------------------------
-cat <<'EOL' > components/providers/AppBridgeProvider.tsx
+cat << 'EOF' > components/providers/AppBridgeProvider.tsx
 "use client";
 
 import { Provider } from "@shopify/app-bridge-react";
@@ -88,12 +73,10 @@ export default function AppBridgeProvider({ children }: { children: React.ReactN
 
   return <Provider config={config}>{children}</Provider>;
 }
-EOL
+EOF
 
-# -----------------------------------------------------
 # SHOPIFY APP INSTANCE
-# -----------------------------------------------------
-cat <<'EOL' > lib/shopifyApp.ts
+cat << 'EOF' > lib/shopifyApp.ts
 import createApp from "@shopify/app-bridge";
 
 export const app =
@@ -104,19 +87,14 @@ export const app =
         forceRedirect: true,
       })
     : null;
-EOL
+EOF
 
-# -----------------------------------------------------
 # AUTHENTICATED FETCH
-# -----------------------------------------------------
-cat <<'EOL' > lib/shopifyFetch.ts
+cat << 'EOF' > lib/shopifyFetch.ts
 import { getSessionToken } from "@shopify/app-bridge-utils";
 import { app } from "./shopifyApp";
 
-export async function shopifyFetch(
-  path: string,
-  options: RequestInit = {}
-) {
+export async function shopifyFetch(path: string, options: RequestInit = {}) {
   if (!app) throw new Error("App Bridge not initialized.");
 
   const token = await getSessionToken(app);
@@ -130,12 +108,10 @@ export async function shopifyFetch(
     },
   });
 }
-EOL
+EOF
 
-# -----------------------------------------------------
 # ROOT LAYOUT
-# -----------------------------------------------------
-cat <<'EOL' > app/layout.tsx
+cat << 'EOF' > app/layout.tsx
 import "./globals.css";
 import AppBridgeProvider from "../components/providers/AppBridgeProvider";
 
@@ -153,12 +129,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     </html>
   );
 }
-EOL
+EOF
 
-# -----------------------------------------------------
 # HOMEPAGE
-# -----------------------------------------------------
-cat <<'EOL' > app/page.tsx
+cat << 'EOF' > app/page.tsx
 export default function HomePage() {
   return (
     <main className="p-6">
@@ -169,25 +143,19 @@ export default function HomePage() {
     </main>
   );
 }
-EOL
+EOF
 
-# -----------------------------------------------------
-# ENVIRONMENT VARIABLES TEMPLATE
-# -----------------------------------------------------
-cat <<'EOL' > .env.local
+# ENV
+cat << 'EOF' > .env.local
 NEXT_PUBLIC_SHOPIFY_API_KEY=YOUR_SHOPIFY_API_KEY
 NEXT_PUBLIC_API_URL=http://localhost:8000
-EOL
+EOF
 
-# -----------------------------------------------------
-# GIT INITIALIZATION
-# -----------------------------------------------------
-echo "-----------------------------------------------------"
+# GIT SETUP
 echo "Initialize Git repository for frontend? (y/n)"
 read -r DO_GIT
 
 if [[ "$DO_GIT" =~ ^[Yy]$ ]]; then
-  echo "Initializing Git..."
   git init
   git checkout -b main
 
@@ -210,15 +178,6 @@ else
   echo "Skipping Git initialization."
 fi
 
-# -----------------------------------------------------
-# DONE
-# -----------------------------------------------------
-echo "-----------------------------------------------------"
 echo "Shopify Frontend Scaffold Complete!"
 echo "Location: $FRONTEND_DIR"
-echo "-----------------------------------------------------"
-echo "Next steps:"
-echo "1) Add real API key into .env.local"
-echo "2) Generate extensions: shopify app generate extension"
-echo "3) Start dev server: npm run dev"
-echo "-----------------------------------------------------"
+echo "Add API key to .env.local and run: npm run dev"
